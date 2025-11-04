@@ -28,11 +28,11 @@ const routes = [
  *
  * 配置說明：
  * - history: 使用 HTML5 History API 模式
- * - base: 設定應用程式的基礎路徑為 '/30DayMapChallenge-26_Transport/'
+ * - base: 設定應用程式的基礎路徑為 '/30DayMapChallenge-24_Places-and-their-names/'
  * - routes: 路由配置陣列
  */
 const router = createRouter({
-  history: createWebHistory('/30DayMapChallenge-26_Transport/'),
+  history: createWebHistory('/30DayMapChallenge-24_Places-and-their-names/'),
   routes,
 });
 

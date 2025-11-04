@@ -1,17 +1,17 @@
-# 30DayMapChallenge - Day 26: Transport
+# 30DayMapChallenge - Day 24: Places and their names
 
-Transport direction visualization with hex grids (Vue 3 + D3). Borrow/return directions are rendered as arrows at each cell centroid. Deployable to GitHub Pages.
+Places and their names visualization (Vue 3 + D3). Deployable to GitHub Pages.
 
 ## Demo & Repo
 
-- Demo: `https://kevin7261.github.io/30DayMapChallenge-26_Transport/`
-- Repo: `https://github.com/kevin7261/30DayMapChallenge-26_Transport`
+- Demo: `https://kevin7261.github.io/30DayMapChallenge-24_Places-and-their-names/`
+- Repo: `https://github.com/kevin7261/30DayMapChallenge-24_Places-and-their-names`
 
 ## Features
 
-- Hex grid visualization with per-cell borrow/return direction arrows
-- Tunable arrow size, color, and offset; tooltips and responsive layout
-- Correct base path for static hosting: `'/30DayMapChallenge-26_Transport/'`
+- Places and their names visualization
+- Tunable visualization settings; tooltips and responsive layout
+- Correct base path for static hosting: `'/30DayMapChallenge-24_Places-and-their-names/'`
 - Data decoupled under `public/data/`
 
 ## Tech Stack
@@ -35,14 +35,14 @@ src/
 │  ├─ dataStore.js          # visualization flags/data
 │  └─ defineStore.js        # settings
 ├─ router/
-│  └─ index.js              # base: '/30DayMapChallenge-26_Transport/'
+│  └─ index.js              # base: '/30DayMapChallenge-24_Places-and-their-names/'
 └─ main.js
 
 public/
 └─ data/
    └─ geojson/
 
-vue.config.js               # publicPath: '/30DayMapChallenge-26_Transport/'
+vue.config.js               # publicPath: '/30DayMapChallenge-24_Places-and-their-names/'
 ```
 
 ## Quick Start
@@ -50,13 +50,13 @@ vue.config.js               # publicPath: '/30DayMapChallenge-26_Transport/'
 Requirements: Node.js 16+, npm 7+
 
 ```bash
-git clone https://github.com/kevin7261/30DayMapChallenge-26_Transport.git
-cd 30DayMapChallenge-26_Transport/website/30DayMapChallenge-26_Transport
+git clone https://github.com/kevin7261/30DayMapChallenge-24_Places-and-their-names.git
+cd 30DayMapChallenge-24_Places-and-their-names/website/30DayMapChallenge-24_Places-and-their-names
 npm install
 npm run serve
 ```
 
-Dev URL: `http://localhost:8080/30DayMapChallenge-26_Transport/`
+Dev URL: `http://localhost:8080/30DayMapChallenge-24_Places-and-their-names/`
 
 ## Build & Deploy
 
