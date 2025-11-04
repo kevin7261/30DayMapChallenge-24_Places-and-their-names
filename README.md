@@ -4,14 +4,17 @@ Places and their names visualization (Vue 3 + D3). Deployable to GitHub Pages.
 
 ## Demo & Repo
 
-- Demo: `https://kevin7261.github.io/30DayMapChallenge-24_Places-and-their-names/`
-- Repo: `https://github.com/kevin7261/30DayMapChallenge-24_Places-and-their-names`
+- Demo:
+  `https://kevin7261.github.io/30DayMapChallenge-24_Places-and-their-names/`
+- Repo:
+  `https://github.com/kevin7261/30DayMapChallenge-24_Places-and-their-names`
 
 ## Features
 
 - Places and their names visualization
 - Tunable visualization settings; tooltips and responsive layout
-- Correct base path for static hosting: `'/30DayMapChallenge-24_Places-and-their-names/'`
+- Correct base path for static hosting:
+  `'/30DayMapChallenge-24_Places-and-their-names/'`
 - Data decoupled under `public/data/`
 
 ## Tech Stack
@@ -22,7 +25,7 @@ Places and their names visualization (Vue 3 + D3). Deployable to GitHub Pages.
 
 ## Data
 
-- Grid stats: `public/data/geojson/grid_with_weighted_angle_stats_500m.geojson`
+- Roads: `public/data/geojson/final_roads_in_taipei.geojson` (道路線)
 - Boundary: `public/data/geojson/臺北市區界圖_20220915.geojson`
 
 ## Project Structure

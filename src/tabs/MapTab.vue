@@ -186,13 +186,6 @@
        */
       const mapContainerId = ref(`leaflet-map-${Math.random().toString(36).substr(2, 9)}`);
 
-      /**
-       * 顯示模式
-       * 'map' = 使用地圖投影顯示（目前結果）
-       * 'grid' = 直接使用 grid_x, grid_y 繪製網格
-       * @type {Ref<string>}
-       */
-      const displayMode = ref('map');
 
       // ═══════════════════════════════════════════════════════════════════════
       // 📊 GeoJSON 數據儲存 (GeoJSON Data Storage)
@@ -206,8 +199,8 @@
       const countyData = ref(null);
 
       /**
-       * 網格 GeoJSON 數據（臺北市 500m 方格）
-       * 來源：grid_with_weighted_angle_stats_500m.geojson
+       * 道路線 GeoJSON 數據（臺北市）
+       * 來源：final_roads_in_taipei.geojson
        * @type {Ref<Object|null>}
        */
       const hexData = ref(null);
@@ -274,31 +267,31 @@
       };
 
       /**
-       * 📥 載入網格 GeoJSON 數據
+       * 📥 載入道路線 GeoJSON 數據
        */
       const loadHexData = async () => {
         try {
-          console.log('[MapTab] 開始載入 500m 方格 GeoJSON 數據...');
+          console.log('[MapTab] 開始載入道路線 GeoJSON 數據...');
 
-          // 載入臺北市 500m 方格 GeoJSON 檔案
+          // 載入臺北市道路線 GeoJSON 檔案
           const hexResponse = await fetch(
-            `${process.env.BASE_URL}data/geojson/grid_with_weighted_angle_stats_500m.geojson`
+            `${process.env.BASE_URL}data/geojson/final_roads_in_taipei.geojson`
           );
 
           // 檢查響應
           if (!hexResponse.ok) {
-            throw new Error(`方格數據載入失敗: HTTP ${hexResponse.status}`);
+            throw new Error(`道路線數據載入失敗: HTTP ${hexResponse.status}`);
           }
 
           // 解析 JSON
           hexData.value = await hexResponse.json();
 
-          console.log('[MapTab] 500m 方格數據載入成功');
-          console.log('  - 網格數量:', hexData.value.features?.length || 0);
+          console.log('[MapTab] 道路線數據載入成功');
+          console.log('  - 道路線數量:', hexData.value.features?.length || 0);
 
           return true;
         } catch (error) {
-          console.error('[MapTab] 500m 方格數據載入失敗:', error);
+          console.error('[MapTab] 道路線數據載入失敗:', error);
           return false;
         }
       };
@@ -438,7 +431,7 @@
         try {
           console.log('[MapTab] 開始繪製直轄市、縣(市)界線 GeoJSON');
 
-          // 繪製所有行政區（臺北市）
+          // 繪製所有行政區（臺北市）- 底層，紅色 1px
           g.selectAll('.county')
             .data(countyData.value.features)
             .enter()
@@ -446,9 +439,8 @@
             .attr('d', path)
             .attr('class', 'county')
             .attr('fill', 'none')
-            .attr('stroke', '#222')
-            .attr('stroke-width', 1.2)
-            .attr('stroke-opacity', 0.9)
+            .attr('stroke', '#ff0000')
+            .attr('stroke-width', 1)
             .attr('vector-effect', 'non-scaling-stroke');
 
           console.log('[MapTab] 直轄市、縣(市)界線 GeoJSON 繪製完成');
@@ -517,86 +509,6 @@
         }
       };
 
-      /**
-       * 🗺️ 繪製六角形網格（Grid 模式版本）
-       * 使用地圖投影，但沒有縣市界線
-       */
-      const drawHexGridOnly = () => {
-        if (!g || !hexData.value || !path) {
-          console.error(
-            '[MapTab] 無法繪製方格: g=',
-            !!g,
-            'hexData=',
-            !!hexData.value,
-            'path=',
-            !!path
-          );
-          return;
-        }
-
-        try {
-          console.log('[MapTab] 開始繪製方格（Grid 模式）');
-
-          // 先清除舊的圖層（包括縣市界線）
-          g.selectAll('.hex-grid').remove();
-          g.selectAll('.county').remove();
-          // 直接繪製所有網格（無分類、無填色）
-          const hexPaths = g
-            .selectAll('.hex-grid')
-            .data(hexData.value.features)
-            .enter()
-            .append('path')
-            .attr('d', path)
-            .attr('class', 'hex-grid')
-            .attr('fill', 'none')
-            .attr('stroke', '#999')
-            .attr('stroke-width', 0.5)
-            .attr('stroke-opacity', 0.7)
-            .attr('shape-rendering', 'crispEdges')
-            .attr('vector-effect', 'non-scaling-stroke')
-            .style('cursor', 'pointer');
-
-          console.log('[DEBUG] Grid 模式 - 繪製了多少個 path 元素:', hexPaths.size());
-
-          hexPaths
-            .on('mouseover', function (event, d) {
-              d3.select(this).attr('stroke-width', 0.9).attr('stroke-opacity', 1);
-              if (tooltip) {
-                const properties = d.properties;
-                // 顯示所有 properties 欄位
-                let tooltipHTML = '';
-                Object.keys(properties).forEach((key) => {
-                  const value = properties[key];
-                  tooltipHTML += `<div><strong>${key}:</strong> ${value !== null && value !== undefined ? value : 'N/A'}</div>`;
-                });
-                tooltip.innerHTML = tooltipHTML;
-                const [mouseX, mouseY] = d3.pointer(event, mapContainer.value);
-                tooltip.style.left = mouseX + 10 + 'px';
-                tooltip.style.top = mouseY - 10 + 'px';
-                tooltip.style.opacity = 1;
-              }
-            })
-            .on('mousemove', function (event) {
-              if (tooltip) {
-                const [mouseX, mouseY] = d3.pointer(event, mapContainer.value);
-                tooltip.style.left = mouseX + 10 + 'px';
-                tooltip.style.top = mouseY - 10 + 'px';
-              }
-            })
-            .on('mouseout', function () {
-              d3.select(this).attr('stroke-width', 0.5).attr('stroke-opacity', 0.7);
-              if (tooltip) {
-                tooltip.style.opacity = 0;
-              }
-            });
-
-          console.log('[MapTab] 方格（Grid 模式）繪製完成');
-          // 在每個方格中心繪製借車/還車角度箭頭
-          drawAngleArrows();
-        } catch (error) {
-          console.error('[MapTab] 方格繪製失敗:', error);
-        }
-      };
 
       /**
        * 🗺️ 繪製網格（使用 grid_x, grid_y，不使用座標）
@@ -785,171 +697,6 @@
         }
       };
 
-      /**
-       * 🎛️ 切換顯示模式
-       * @param {string} mode - 'map' 或 'grid'
-       */
-      const toggleDisplayMode = async (mode) => {
-        displayMode.value = mode;
-        console.log('[MapTab] 切換顯示模式:', mode);
-
-        if (displayMode.value === 'map') {
-          // 地圖模式：需要地圖投影，載入縣市界線和六角形網格
-          if (!countyData.value) {
-            await loadCountyData();
-          }
-          if (!hexData.value) {
-            await loadHexData();
-          }
-
-          // 清除舊的 SVG（如果從其他模式切換過來）
-          if (svg && !projection) {
-            svg.remove();
-            svg = null;
-          }
-
-          if (!projection || !path) {
-            // 如果還沒有創建地圖，先創建
-            const rect = mapContainer.value.getBoundingClientRect();
-            if (rect.width > 0 && rect.height > 0) {
-              const width = rect.width;
-              const height = rect.height;
-
-              // 清除舊的 SVG
-              if (svg) {
-                svg.remove();
-              }
-
-              // 創建 SVG 和地圖投影
-              svg = d3
-                .select(mapContainer.value)
-                .append('svg')
-                .attr('width', width)
-                .attr('height', height)
-                .style('background', '#ffffff');
-
-              projection = d3.geoMercator();
-              if (countyData.value) {
-                projection.fitExtent(
-                  [
-                    [20, 20],
-                    [width - 20, height - 20],
-                  ],
-                  countyData.value
-                );
-              } else {
-                projection
-                  .center([121, 25.05])
-                  .scale(45000)
-                  .translate([width / 2, height / 2]);
-              }
-
-              path = d3.geoPath().projection(projection);
-              g = svg.append('g');
-
-              zoom = d3
-                .zoom()
-                .scaleExtent([0.8, 12])
-                .on('zoom', (event) => {
-                  g.attr('transform', event.transform);
-                });
-
-              svg.call(zoom);
-
-              // 重置縮放狀態，確保切換模式時不會受到之前模式的影響
-              svg.call(zoom.transform, d3.zoomIdentity);
-
-              createTooltip();
-              isMapReady.value = true;
-            }
-          } else {
-            // 如果已經創建了地圖，重置縮放狀態
-            if (svg && zoom) {
-              svg.call(zoom.transform, d3.zoomIdentity);
-            }
-          }
-          // 繪製縣市界線和六角形網格
-          drawCounties();
-          drawHexGrid();
-        } else {
-          // Grid 模式：載入六角形網格數據，需要地圖投影來繪製
-          if (!hexData.value) {
-            await loadHexData();
-          }
-          // 清除縣市界線數據（不需要）
-          countyData.value = null;
-
-          // 清除舊的 SVG（如果從地圖模式切換過來）
-          if (svg && !projection) {
-            svg.remove();
-            svg = null;
-          }
-
-          if (!projection || !path) {
-            // 如果還沒有創建地圖，先創建
-            const rect = mapContainer.value.getBoundingClientRect();
-            if (rect.width > 0 && rect.height > 0) {
-              const width = rect.width;
-              const height = rect.height;
-
-              // 清除舊的 SVG
-              if (svg) {
-                svg.remove();
-              }
-
-              // 創建 SVG 和地圖投影（Grid 模式也需要投影來繪製六角形）
-              svg = d3
-                .select(mapContainer.value)
-                .append('svg')
-                .attr('width', width)
-                .attr('height', height)
-                .style('background', '#ffffff');
-
-              projection = d3.geoMercator();
-              if (countyData.value) {
-                projection.fitExtent(
-                  [
-                    [20, 20],
-                    [width - 20, height - 20],
-                  ],
-                  countyData.value
-                );
-              } else {
-                projection
-                  .center([121, 25.05])
-                  .scale(45000)
-                  .translate([width / 2, height / 2]);
-              }
-
-              path = d3.geoPath().projection(projection);
-              g = svg.append('g');
-
-              zoom = d3
-                .zoom()
-                .scaleExtent([0.8, 12])
-                .on('zoom', (event) => {
-                  g.attr('transform', event.transform);
-                });
-
-              svg.call(zoom);
-
-              // 重置縮放狀態
-              svg.call(zoom.transform, d3.zoomIdentity);
-
-              createTooltip();
-              isMapReady.value = true;
-            }
-          } else {
-            // 如果已經創建了地圖，重置縮放狀態
-            if (svg && zoom) {
-              svg.call(zoom.transform, d3.zoomIdentity);
-            }
-          }
-
-          // 繪製六角形網格（Grid 模式，不顯示縣市界線）
-          drawHexGridOnly();
-        }
-      };
 
       /**
        * 🗺️ 繪製六角形網格（使用大陸地區人民核准定居數據）
@@ -976,7 +723,7 @@
           console.log('[MapTab] 使用 Map 模式繪製（地圖投影）');
           console.log('[MapTab] path generator:', !!path, 'g:', !!g);
 
-          // 直接繪製所有網格（無分類、無填色）
+          // 直接繪製所有道路線（無分類、無填色）- 最上層，1px
           const hexPaths = g
             .selectAll('.hex-grid')
             .data(hexData.value.features)
@@ -986,8 +733,7 @@
             .attr('class', 'hex-grid')
             .attr('fill', 'none')
             .attr('stroke', '#999')
-            .attr('stroke-width', 0.5)
-            .attr('stroke-opacity', 0.7)
+            .attr('stroke-width', 1)
             .attr('shape-rendering', 'crispEdges')
             .attr('vector-effect', 'non-scaling-stroke')
             .style('cursor', 'pointer');
@@ -996,7 +742,7 @@
 
           hexPaths
             .on('mouseover', function (event, d) {
-              d3.select(this).attr('fill-opacity', 1).attr('stroke-width', 2);
+              d3.select(this).attr('stroke-width', 2);
               if (tooltip) {
                 const properties = d.properties;
                 // 顯示所有 properties 欄位
@@ -1020,13 +766,16 @@
               }
             })
             .on('mouseout', function () {
-              d3.select(this).attr('fill-opacity', 0.8).attr('stroke-width', 0.5);
+              d3.select(this).attr('stroke-width', 1);
               if (tooltip) {
                 tooltip.style.opacity = 0;
               }
             });
 
-          console.log('[MapTab] 方格（地圖模式）繪製完成');
+          // 確保道路線在最上層
+          g.selectAll('.hex-grid').raise();
+
+          console.log('[MapTab] 地圖繪製完成');
           console.log('  - SVG 中的 path 元素數量:', g.selectAll('path').size());
           console.log('  - hex-grid class 元素數量:', g.selectAll('.hex-grid').size());
 
@@ -1133,7 +882,6 @@
               .attr('stroke', color)
               .attr('stroke-width', 1.5)
               .attr('stroke-linecap', 'butt')
-              .attr('stroke-opacity', 0.95)
               .attr('class', 'angle-arrow');
           };
 
@@ -1259,84 +1007,49 @@
 
       /**
        * 🚀 初始化地圖
-       * 根據初始顯示模式創建對應的視圖
        */
       const initMap = async () => {
         let attempts = 0;
         const maxAttempts = 20;
 
-        // 根據顯示模式載入不同的數據
-        if (displayMode.value === 'map') {
-          // 地圖模式：需要載入縣市界線和六角形網格數據
-          console.log('[MapTab] 開始載入地圖模式數據...');
-          const [countyLoaded, hexLoaded] = await Promise.all([loadCountyData(), loadHexData()]);
+        // 載入縣市界線和道路線數據
+        console.log('[MapTab] 開始載入地圖數據...');
+        const [countyLoaded, hexLoaded] = await Promise.all([loadCountyData(), loadHexData()]);
 
-          if (!countyLoaded) {
-            console.error('[MapTab] 無法載入直轄市、縣(市)界線數據');
-            return;
-          }
-
-          if (!hexLoaded) {
-            console.error('[MapTab] 無法載入六角形網格數據');
-            return;
-          }
-
-          console.log('[MapTab] 所有數據載入完成，開始創建地圖');
-
-          const tryCreateMap = async () => {
-            if (attempts >= maxAttempts) {
-              console.error('[MapTab] 地圖初始化失敗，已達到最大嘗試次數');
-              return;
-            }
-
-            attempts++;
-            console.log(`[MapTab] 嘗試創建地圖 (${attempts}/${maxAttempts})`);
-
-            if (createMap(countyData.value)) {
-              console.log('[MapTab] 地圖創建成功，開始繪製圖層');
-              // 先繪製縣市界線（底層）
-              drawCounties();
-              // 再繪製六角形網格（上層）
-              drawHexGrid();
-            } else {
-              console.log('[MapTab] 地圖創建失敗，100ms 後重試');
-              setTimeout(tryCreateMap, 100);
-            }
-          };
-
-          tryCreateMap();
-        } else {
-          // Grid 模式：需要載入六角形網格數據，需要地圖投影來繪製
-          console.log('[MapTab] 開始載入網格模式數據...');
-          const hexLoaded = await loadHexData();
-
-          if (!hexLoaded) {
-            console.error('[MapTab] 無法載入六角形網格數據');
-            return;
-          }
-
-          console.log('[MapTab] 數據載入完成，開始創建網格視圖');
-
-          const tryCreateGrid = async () => {
-            if (attempts >= maxAttempts) {
-              console.error('[MapTab] 網格初始化失敗，已達到最大嘗試次數');
-              return;
-            }
-
-            attempts++;
-            console.log(`[MapTab] 嘗試創建網格視圖 (${attempts}/${maxAttempts})`);
-
-            if (createMap()) {
-              console.log('[MapTab] 網格視圖創建成功，開始繪製六角形網格');
-              drawHexGridOnly();
-            } else {
-              console.log('[MapTab] 網格視圖創建失敗，100ms 後重試');
-              setTimeout(tryCreateGrid, 100);
-            }
-          };
-
-          tryCreateGrid();
+        if (!countyLoaded) {
+          console.error('[MapTab] 無法載入直轄市、縣(市)界線數據');
+          return;
         }
+
+        if (!hexLoaded) {
+          console.error('[MapTab] 無法載入道路線數據');
+          return;
+        }
+
+        console.log('[MapTab] 所有數據載入完成，開始創建地圖');
+
+        const tryCreateMap = async () => {
+          if (attempts >= maxAttempts) {
+            console.error('[MapTab] 地圖初始化失敗，已達到最大嘗試次數');
+            return;
+          }
+
+          attempts++;
+          console.log(`[MapTab] 嘗試創建地圖 (${attempts}/${maxAttempts})`);
+
+          if (createMap(countyData.value)) {
+            console.log('[MapTab] 地圖創建成功，開始繪製圖層');
+            // 先繪製縣市界線（底層）
+            drawCounties();
+            // 再繪製道路線（上層）
+            drawHexGrid();
+          } else {
+            console.log('[MapTab] 地圖創建失敗，100ms 後重試');
+            setTimeout(tryCreateMap, 100);
+          }
+        };
+
+        tryCreateMap();
       };
 
       // 處理窗口大小調整（重新繪製整個地圖）
@@ -1394,8 +1107,6 @@
       return {
         mapContainer,
         mapContainerId,
-        displayMode,
-        toggleDisplayMode,
       };
     },
   };
@@ -1407,35 +1118,6 @@
     <!-- 🗺️ Leaflet 地圖容器 -->
     <div :id="mapContainerId" ref="mapContainer" class="h-100 w-100"></div>
 
-    <!-- 🎛️ 左側中間控制面板 -->
-    <div
-      class="position-absolute"
-      style="top: 50%; left: 0; transform: translateY(-50%); z-index: 1000; padding: 1rem"
-    >
-      <div class="bg-dark bg-opacity-75 rounded-3 p-3">
-        <!-- 🎛️ 顯示模式選擇區域 -->
-        <div class="">
-          <div class="d-flex flex-column gap-1">
-            <button
-              type="button"
-              class="btn border-0 my-country-btn my-font-sm-white px-4 py-3"
-              :class="[displayMode === 'map' ? 'active' : '']"
-              @click="toggleDisplayMode('map')"
-            >
-              地圖模式
-            </button>
-            <button
-              type="button"
-              class="btn border-0 my-country-btn my-font-sm-white px-4 py-3"
-              :class="[displayMode === 'grid' ? 'active' : '']"
-              @click="toggleDisplayMode('grid')"
-            >
-              網格模式
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
