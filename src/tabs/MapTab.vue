@@ -432,6 +432,8 @@
           console.log('[MapTab] 開始繪製直轄市、縣(市)界線 GeoJSON');
 
           // 繪製所有行政區（臺北市）- 底層，紅色 1px
+          g.selectAll('.county').remove();
+
           g.selectAll('.county')
             .data(countyData.value.features)
             .enter()
@@ -439,7 +441,7 @@
             .attr('d', path)
             .attr('class', 'county')
             .attr('fill', 'none')
-            .attr('stroke', '#ff0000')
+            .attr('stroke', '#000000')
             .attr('stroke-width', 1)
             .attr('vector-effect', 'non-scaling-stroke');
 
@@ -732,7 +734,13 @@
             .attr('d', path)
             .attr('class', 'hex-grid')
             .attr('fill', 'none')
-            .attr('stroke', '#999')
+            .attr('stroke', (d) => {
+              const flag = d?.properties?.is_target_street_prefix;
+              if (flag === true || flag === 'true' || flag === 'TRUE' || flag === 1) {
+                return '#ff2d55';
+              }
+              return '#d3d3d3';
+            })
             .attr('stroke-width', 1)
             .attr('shape-rendering', 'crispEdges')
             .attr('vector-effect', 'non-scaling-stroke')
@@ -1039,10 +1047,10 @@
 
           if (createMap(countyData.value)) {
             console.log('[MapTab] 地圖創建成功，開始繪製圖層');
-            // 先繪製縣市界線（底層）
-            drawCounties();
-            // 再繪製道路線（上層）
+            // 先繪製道路線
             drawHexGrid();
+            // 再繪製縣市界線，確保位於最上層
+            drawCounties();
           } else {
             console.log('[MapTab] 地圖創建失敗，100ms 後重試');
             setTimeout(tryCreateMap, 100);
