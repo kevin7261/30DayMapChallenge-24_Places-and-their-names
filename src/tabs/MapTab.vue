@@ -179,6 +179,55 @@
        */
       const isMapReady = ref(false);
 
+      const ROAD_FILTER_MODES = Object.freeze({
+        ALL: 'all',
+        CHINA: 'china',
+        CHINA_MAIN: 'china-main',
+      });
+
+      const roadFilterMode = ref(ROAD_FILTER_MODES.ALL);
+
+      const isTargetFlag = (flag) =>
+        flag === true || flag === 'true' || flag === 'TRUE' || flag === 1 || flag === '1';
+
+      const hasChineseRoadSuffix = (name) => {
+        if (typeof name !== 'string') return false;
+        const trimmedName = name.trim();
+        if (!trimmedName) return false;
+        const lastChar = trimmedName[trimmedName.length - 1];
+        return ['段', '路', '街'].includes(lastChar);
+      };
+
+      const getFilteredFeatures = () => {
+        const features = hexData.value?.features ?? [];
+        return features.filter((feature) => {
+          const properties = feature?.properties ?? {};
+          const isTarget = isTargetFlag(properties.is_target_street_prefix);
+
+          switch (roadFilterMode.value) {
+            case ROAD_FILTER_MODES.ALL:
+              return true;
+            case ROAD_FILTER_MODES.CHINA:
+              return isTarget;
+            case ROAD_FILTER_MODES.CHINA_MAIN:
+              return isTarget && hasChineseRoadSuffix(properties.name);
+            default:
+              return true;
+          }
+        });
+      };
+
+      const getStrokeColor = (feature) => {
+        const properties = feature?.properties ?? {};
+        const isTarget = isTargetFlag(properties.is_target_street_prefix);
+
+        if (roadFilterMode.value === ROAD_FILTER_MODES.ALL) {
+          return isTarget ? '#ff2d55' : '#d3d3d3';
+        }
+
+        return '#ff2d55';
+      };
+
       /**
        * 地圖容器唯一 ID
        * 使用隨機字符串確保多實例時不會衝突
@@ -725,28 +774,24 @@
           console.log('[MapTab] 使用 Map 模式繪製（地圖投影）');
           console.log('[MapTab] path generator:', !!path, 'g:', !!g);
 
+          const filteredFeatures = getFilteredFeatures();
+
           // 直接繪製所有道路線（無分類、無填色）- 最上層，1px
           const hexPaths = g
             .selectAll('.hex-grid')
-            .data(hexData.value.features)
+            .data(filteredFeatures)
             .enter()
             .append('path')
             .attr('d', path)
             .attr('class', 'hex-grid')
             .attr('fill', 'none')
-            .attr('stroke', (d) => {
-              const flag = d?.properties?.is_target_street_prefix;
-              if (flag === true || flag === 'true' || flag === 'TRUE' || flag === 1) {
-                return '#ff2d55';
-              }
-              return '#d3d3d3';
-            })
+            .attr('stroke', getStrokeColor)
             .attr('stroke-width', 1)
             .attr('shape-rendering', 'crispEdges')
             .attr('vector-effect', 'non-scaling-stroke')
             .style('cursor', 'pointer');
 
-          console.log('[DEBUG] 繪製了多少個 path 元素:', hexPaths.size());
+          console.log('[DEBUG] 繪製了多少個 path 元素:', hexPaths.size(), '模式:', roadFilterMode.value);
 
           hexPaths
             .on('mouseover', function (event, d) {
@@ -794,6 +839,18 @@
         }
       };
 
+      const setRoadFilterMode = (mode) => {
+        if (!Object.values(ROAD_FILTER_MODES).includes(mode)) {
+          console.warn('[MapTab] 收到未知的道路顯示模式:', mode);
+          return;
+        }
+        if (roadFilterMode.value === mode) return;
+        roadFilterMode.value = mode;
+        if (isMapReady.value) {
+          drawHexGrid();
+        }
+      };
+
       // （已移除）原本用於除錯的紅點顯示函數 drawGridCentroids
 
       // 已移除：原 SVG marker 箭頭尖端
@@ -817,7 +874,7 @@
         // 確保箭頭圖層在最上層
         if (arrowsGroup.raise) arrowsGroup.raise();
 
-        const features = hexData.value.features || [];
+        const features = getFilteredFeatures();
 
         // 箭頭長度（縮小一半），兩支箭頭共用同一個原點（不做側向偏移）
         const arrowLength = 8;
@@ -1115,6 +1172,9 @@
       return {
         mapContainer,
         mapContainerId,
+        roadFilterMode,
+        roadFilterModes: ROAD_FILTER_MODES,
+        setRoadFilterMode,
       };
     },
   };
@@ -1125,6 +1185,39 @@
   <div id="map-container" class="h-100 w-100 position-relative bg-transparent z-0">
     <!-- 🗺️ Leaflet 地圖容器 -->
     <div :id="mapContainerId" ref="mapContainer" class="h-100 w-100"></div>
+
+    <!-- 🎛️ 道路顯示模式切換 -->
+    <div
+      class="position-absolute road-filter-panel"
+      style="top: 50%; left: 0; transform: translateY(-50%); z-index: 1000; padding: 1rem"
+    >
+      <div class="bg-dark bg-opacity-75 rounded-3 p-3 d-flex flex-column gap-2">
+        <button
+          type="button"
+          class="btn border-0 my-country-btn my-font-sm-white px-4 py-3"
+          :class="{ active: roadFilterMode === roadFilterModes.ALL }"
+          @click="setRoadFilterMode(roadFilterModes.ALL)"
+        >
+          全市
+        </button>
+        <button
+          type="button"
+          class="btn border-0 my-country-btn my-font-sm-white px-4 py-3"
+          :class="{ active: roadFilterMode === roadFilterModes.CHINA }"
+          @click="setRoadFilterMode(roadFilterModes.CHINA)"
+        >
+          全市中國路名
+        </button>
+        <button
+          type="button"
+          class="btn border-0 my-country-btn my-font-sm-white px-4 py-3"
+          :class="{ active: roadFilterMode === roadFilterModes.CHINA_MAIN }"
+          @click="setRoadFilterMode(roadFilterModes.CHINA_MAIN)"
+        >
+          全市中國路名幹道
+        </button>
+      </div>
+    </div>
 
   </div>
 </template>
@@ -1164,5 +1257,21 @@
     background-color: #333; /* 深灰色背景 */
     color: #fff; /* 白色文字 */
     border: none; /* 無邊框 */
+  }
+
+  .road-filter-panel .my-country-btn {
+    background-color: rgba(33, 37, 41, 0.7);
+    color: #ffffff;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .road-filter-panel .my-country-btn:not(.active):hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+  }
+
+  .road-filter-panel .my-country-btn.active {
+    background-color: #ff2d55;
+    color: #ffffff;
   }
 </style>
